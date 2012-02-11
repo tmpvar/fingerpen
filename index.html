@@ -1,0 +1,143 @@
+<html>
+<head>
+  <title></title>
+  <script type="text/javascript" src="gamepad.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style type="text/css">
+
+    body {
+      background: #999;
+    }
+    section {
+      position:absolute;
+      border-width: 1px;
+      border-style: solid;
+    }
+
+    #cursor {
+      z-index: 2;
+      width: 60px;
+      height : 60px;
+      font-size: 20px;
+      line-height: 60px;
+      text-align: center;
+      color: red;
+      font-weight: bold;
+      opacity: 0.4;
+      border-color: red;
+    }
+
+    #work {
+      width: 500;
+      height: 400;
+      border-color: black;
+      background: #F0F0F0;
+    }
+
+    #info {
+      right : 10px;
+      top:10px;
+      padding: 10px;
+      font-family: verdana;
+      background: white;
+      line-height: 12px;
+    }
+
+
+  </style>
+</head>
+<body>
+  <section id="info">
+    <p>X: <span class="x">0</span></p>
+    <p>Y: <span class="y">0</span></p>
+    <p>Z: <span class="z">0</span></p>
+  </section>
+  <section id="cursor">+</section>
+  <section id="work"></section>
+
+
+  <script type="text/javascript">
+
+    if ( !window.requestAnimationFrame ) {
+      window.requestAnimationFrame = ( function() {
+        return window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
+            window.setTimeout( callback, 1000 / 60 );
+        };
+      })();
+    }
+
+    var
+    cursor = document.getElementById('cursor'),
+    w = 500,
+    h = 400,
+    pos = {
+      x : 30,
+      y : 30,
+      z : 0
+    },
+    info = {
+      x : document.getElementsByClassName('x')[0],
+      y : document.getElementsByClassName('y')[0],
+      z : document.getElementsByClassName('z')[0],
+    },
+    ppos,
+    padIndex,
+    socket = io.connect(window.location.protocol + '//' +
+                        window.location.hostname + ':'  +
+                        window.location.port);
+    toNormal = function() {
+      return {
+        x : new Number(-pos.x+30).toFixed(4),
+        y : new Number(-pos.y+30).toFixed(4),
+        z : -pos.z.toFixed(2)
+      }
+    },
+    update = function() {
+      window.requestAnimationFrame(update);
+      cursor.style.left = w - pos.x;
+      cursor.style.top = h - pos.y;
+      var n = toNormal();
+      info.x.innerHTML = n.x;
+      info.y.innerHTML = n.y;
+      info.z.innerHTML = n.z;
+      var pads = Gamepad.getStates();
+      if (!padIndex) {
+        for (var i = 0; i<pads.length; i++) {
+          console.log(pads[i])
+          if(pads[i]) {
+            console.log('found!')
+            padIndex = i;
+            break;
+          }
+        }
+
+        // stop short
+        if (!padIndex) { return; }
+        ppos = JSON.parse(JSON.stringify(pads[padIndex]));
+      }
+
+      var x = pos.x, y = pos.y, z = pos.z;
+
+      pos.x -= pads[padIndex].leftStickX.toFixed(1);
+      if (pos.x > 410) { pos.x = 410; }
+      if (pos.x < 0) { pos.x = 0; }
+      pos.y -= pads[padIndex].leftStickY.toFixed(1);
+      if (pos.y > 410) { pos.x = 410; }
+      if (pos.y < 0) { pos.x = 0; }
+      pos.z += Math.round(pads[padIndex].rightStickY)/10;
+      if (pos.z > 23.6) { pos.z = 23.6; }
+      if (pos.z < 0) { pos.z = 0; }
+
+      // if new coords send em to grbl
+      if (pos.x !== x || pos.y !== y || pos.z !== z) {
+        socket.emit('movement', toNormal());
+      }
+    };
+    update();
+  </script>
+</body>
+</html>
