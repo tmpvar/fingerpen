@@ -22,20 +22,17 @@ sp.write('G90\n');
 
 io.sockets.on('connection', function (socket) {
   socket.on('movement', function (data) {
+console.log(data);
+    if (data.x > 370) {
+      return;
+    }
 
     sp.write('G90\n');
 
     sp.write([
       'G1',
       'X' + data.x,
-      'Y' + data.y,
       'F800'
-    ].join(' ') + '\n');
-
-    sp.write([
-      'G1',
-      'Z' + data.z,
-      'F400'
     ].join(' ') + '\n');
   });
 });
