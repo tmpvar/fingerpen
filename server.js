@@ -25,11 +25,18 @@ hook.on('hook::ready', function() {
         name : 'fingerpen gcode packet',
         gcode : [
           [
-            'G1',
+            'G0',
             'X' + data.x,
-            'F800'
+            'Y' + data.y,
+            'F20000'
           ].join(' ')
           ]
+      });
+
+
+      hook.emit("gcode", {
+        name : 'fingerpen gcode packet',
+        gcode : (data.spindle) ? ['m4'] : ['m5']
       });
     });
   });
